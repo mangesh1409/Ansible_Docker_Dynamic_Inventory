@@ -1,0 +1,50 @@
+- name: Dynamic Docker
+  hosts: localhost
+  tasks:
+  - name: Starting Docker Daemon
+    service:
+      name: docker
+      state: started
+
+  - name: Launching Container
+    docker_container:
+      name: dockeransibleos
+      image: centosssh:v1
+      state: started
+      interactive: yes
+      tty: yes
+      ports:
+      - 182:80
+      - 345:22
+    register: x
+
+  - name: debugging
+    debug: 
+      var: x.container.NetworkSettings.IPAddress
+
+  - name: Updating Inventory
+    blockinfile:
+      path: /root/ARTH/Ansible/Inventory/ip.txt
+      block: |
+             [docker]
+             {{ x['container']['NetworkSettings']['IPAddress'] }} ansible_ssh_user=root ansible_ssh_pass=redhat ansible_connection=ssh
+
+
+
+- hosts: docker
+  tasks:
+  - name: Installing the Webserver
+    package:
+      name: httpd
+      state: present
+  - name: Configuring the WebPages
+    copy:
+      content: "<b>It works</b>"
+      dest: /var/www/html/index.html
+  - name: Starting the Service
+    command: "/usr/sbin/httpd"
+
+
+
+
+
